@@ -1,6 +1,7 @@
 "use strict";
-var fs = require('fs');
-var twitter = require('twitter');
+var express = require('express');
+var OAuth = require('oauth').OAuth;
+
 var TWITTER_CONSUMER_KEY = process.env.TWITTER_CONSUMER_KEY;
 var TWITTER_CONSUMER_SECRET = process.env.TWITTER_CONSUMER_SECRET;
 var IPSetting = process.env.IPSetting;
@@ -8,21 +9,20 @@ var portSetting = "";
 if(!/(heroku)/.exec(IPSetting)){
 	portSetting = ":"+(process.env.PORT || 3000).toString();
 }
-console.log(IPSetting+portSetting+'/');
+console.log("twitter.js : " + IPSetting+portSetting+'/');
 
-var OAuth = require('oauth').OAuth;
+var router = express.Router();
 var oauth = new OAuth(
 				'https://api.twitter.com/oauth/request_token',
 				'https://api.twitter.com/oauth/access_token',
 				TWITTER_CONSUMER_KEY,
 				TWITTER_CONSUMER_SECRET,
 				'1.0A',
-				IPSetting+portSetting+'/auth/twitter/callback',
+				IPSetting+portSetting+'/twitter/auth/callback',
 				'HMAC-SHA1'
 );
 
-function twitterOauthSetUp(app){
-	app.get('/auth/twitter',function(req,res){
+	router.get('/auth',function(req,res){
 		oauth.getOAuthRequestToken(function(error,oauthToken,oauthTokenSecret,results){
 			if(error){
 				console.log(error);
@@ -31,14 +31,12 @@ function twitterOauthSetUp(app){
 				req.session.twitterOAuth = {};
 				req.session.twitterOAuth.token = oauthToken;
 				req.session.twitterOAuth.tokenSecret = oauthTokenSecret;
-                req.session.save(function(){
                   res.redirect('https://twitter.com/oauth/authenticate?oauth_token='+oauthToken);
-                })
 			}
 		});
 	})
 
-	app.get('/auth/twitter/callback', function(req, res, next){
+	router.get('/auth/callback', function(req, res, next){
 		if (req.session.twitterOAuth) {
 			req.session.twitterOAuth.verifier = req.query.oauth_verifier;
 			var sessionOAuth = req.session.twitterOAuth;
@@ -49,50 +47,14 @@ function twitterOauthSetUp(app){
 					}else{
 						req.session.twitterOAuth.accessToken = oauthAccessToken;
 						req.session.twitterOAuth.accessTokenSecret = oauthAccessTokenSecret;
-                        req.session.save(function(){ 
 						//res.send("TOPページに移動します");
 						    res.redirect(IPSetting + portSetting + "/");
-                        });
 					}
 			})
 		}else{
-				res.redirect('/auth/twitter');
+				res.redirect('/auth');
 		} 
 	})
-}
-
-function twitterIconChangeRequest(req){
-	var image;
-	var client = new twitter({
-		consumer_key: TWITTER_CONSUMER_KEY,
-		consumer_secret: TWITTER_CONSUMER_SECRET,
-		access_token_key: req.session.twitterOAuth.accessToken,
-		access_token_secret: req.session.twitterOAuth.accessTokenSecret
-	})
-	try{
-		image = fs.readFileSync('./'+req.file.path);
-		fs.unlinkSync('./'+req.file.path);
-	}catch(error){ 
-		console.log(error);
-		return "error!!";
-	}
 
 
-	image = b64Encode(image);
-
-	client.post('account/update_profile_image',{image: image},function(error,responce){
-		if(error){
-			console.log(error);	
-			return "error!!";
-		}else{
-			return "success!!";
-		}
-	})
-	
-}
-
-function b64Encode(str){
-	return new Buffer(str).toString('base64');
-}
-
-module.exports = {twitterOauthSetUp : twitterOauthSetUp, twitterIconChangeRequest: twitterIconChangeRequest}
+module.exports = router;

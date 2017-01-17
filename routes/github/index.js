@@ -1,5 +1,6 @@
 'use strict';
 var github = require('github');
+var router = require('express').Router();
 
 var IPSetting = process.env.IPSetting;
 var portSetting = "";
@@ -21,22 +22,23 @@ var oauth2 = new OAuth2(GITHUB_CONSUMER_KEY,
     null);
 
 var authURL = oauth2.getAuthorizeUrl({
-               redirect_url: 'http://localhost:3000/auth/github/callback',
+               redirect_url: 'http://localhost:3000/github/auth/callback',
                        scope: ['repo', 'user'],
                                state: 'hogehoge'
                                    });
 
 
-function githubOauthSetUp(app){
-    app.get('/auth/github',function(req,res){
+    router.get('/auth',function(req,res){
+      console.log(req.url);
       res.redirect(authURL);
     })
     
-    app.get('/auth/github/callback',function(req,res){
+    router.get('/auth/callback',function(req,res){
+      console.log(req);
       var requestToken  = req.query.code;
       oauth2.getOAuthAccessToken(
         requestToken,
-        {redirect_url: 'http://localhost:3000/auth/github/access_token'},
+        {},
         function(err,accessToken,refreshToken,results){
             if(err){
                 console.log(err);
@@ -48,15 +50,11 @@ function githubOauthSetUp(app){
                 req.session.githubOAuth = {};
                 req.session.githubOAuth.accessToken = accessToken;
                 req.session.githubOAuth.refreshToken = refreshToken;
-                req.session.save(function(){
-                  console.log(req.session)
                 //console.log('Obtained access_token: ', accessToken);
                   res.redirect(IPSetting + portSetting + "/");
-                });
             }
         }
       );
     })
-}
 
-module.exports = {githubOauthSetUp : githubOauthSetUp};
+module.exports = router;
