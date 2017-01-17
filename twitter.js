@@ -31,7 +31,9 @@ function twitterOauthSetUp(app){
 				req.session.twitterOAuth = {};
 				req.session.twitterOAuth.token = oauthToken;
 				req.session.twitterOAuth.tokenSecret = oauthTokenSecret;
-				res.redirect('https://twitter.com/oauth/authenticate?oauth_token='+oauthToken);
+                req.session.save(function(){
+                  res.redirect('https://twitter.com/oauth/authenticate?oauth_token='+oauthToken);
+                })
 			}
 		});
 	})
@@ -47,8 +49,10 @@ function twitterOauthSetUp(app){
 					}else{
 						req.session.twitterOAuth.accessToken = oauthAccessToken;
 						req.session.twitterOAuth.accessTokenSecret = oauthAccessTokenSecret;
+                        req.session.save(function(){ 
 						//res.send("TOPページに移動します");
-						res.redirect(IPSetting + portSetting + "/");
+						    res.redirect(IPSetting + portSetting + "/");
+                        });
 					}
 			})
 		}else{
