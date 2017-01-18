@@ -1,5 +1,8 @@
 var express = require('express');
 var router = express.Router();
+var fs = require('fs');
+
+var indexJs = fs.readFileSync('./views/index.js',"utf-8");
 
 var twitterRoutes = require("./twitter/index");
 var githubRoutes = require("./github/index");
@@ -28,6 +31,10 @@ router.get('/',function(req,res){
 		ejsStatus['githubButton'] = ' -> <a href="/github/auth">githubをoauth認証する</a>' ;
 	}
 	res.render('index.ejs',ejsStatus);
+})
+
+router.get('/index.js',function(req,res){
+    res.send(indexJs);
 })
 
 module.exports = router;
